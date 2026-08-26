@@ -19,7 +19,13 @@ to already know which orb might be relevant.
 
 ## Install
 
-Copy this directory into your personal or project skills folder:
+Using the [skills CLI](https://github.com/vercel-labs/skills):
+
+```bash
+npx skills add hidetaka-cci/circleci-orb-finder --agent claude-code
+```
+
+Or copy this directory into your personal or project skills folder directly:
 
 ```bash
 git clone https://github.com/hidetaka-cci/circleci-orb-finder.git \
