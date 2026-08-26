@@ -22,6 +22,11 @@ version carries.
 python3 scripts/run_routing_evals.py
 ```
 
+It also writes a JUnit XML report (default: `test-results/routing-evals/junit.xml`,
+override with `--junit-xml`) with one testcase per frontmatter check and per
+routing case, so CI can surface individual pass/fail results instead of just
+an exit code.
+
 ## `cases/functional-cases.json` + `scripts/run_functional_evals.sh`
 
 Runs the skill's actual `search_by_name.sh` / `search_by_content.sh` against
@@ -59,6 +64,9 @@ jobs:
       - run:
           name: Run circleci-orb-finder routing evals
           command: python3 evals/scripts/run_routing_evals.py --skills-root .
+      - store_test_results:
+          path: test-results
+          when: always
 
 workflows:
   evals:

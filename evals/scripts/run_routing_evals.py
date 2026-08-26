@@ -20,6 +20,8 @@ import argparse
 import json
 import re
 import sys
+import time
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -58,9 +60,9 @@ def parse_frontmatter(skill_file: Path) -> dict[str, str]:
     return fields
 
 
-def discover_skills(skills_root: Path) -> tuple[list[SkillFile], list[str]]:
+def discover_skills(skills_root: Path) -> tuple[list[SkillFile], list[tuple[Path, str]]]:
     skill_files: list[SkillFile] = []
-    parse_errors: list[str] = []
+    parse_errors: list[tuple[Path, str]] = []
 
     # Support two layouts: a root containing many `<skill>/SKILL.md`
     # subdirectories (e.g. ~/.claude/skills/), and a single skill's own repo
@@ -77,7 +79,7 @@ def discover_skills(skills_root: Path) -> tuple[list[SkillFile], list[str]]:
         try:
             fields = parse_frontmatter(skill_md)
         except ValueError as exc:
-            parse_errors.append(f"{skill_md}: {exc}")
+            parse_errors.append((skill_md, str(exc)))
             continue
         name = fields.get("name", "")
         description = fields.get("description", "")
@@ -124,22 +126,39 @@ def predict_skill(prompt: str, skill_phrases: dict[str, list[str]]) -> str | Non
     return best_name if best_score > 0 else None
 
 
-def run_routing_eval(eval_data: dict[str, Any]) -> tuple[list[str], int, int]:
+def run_routing_eval(eval_data: dict[str, Any]) -> list[tuple[str, bool, str]]:
     skill_phrases = {name: list(meta.get("phrases", [])) for name, meta in eval_data.get("skills", {}).items()}
     cases = eval_data.get("cases", [])
 
-    failures: list[str] = []
-    passed = 0
+    results: list[tuple[str, bool, str]] = []
     for i, case in enumerate(cases, start=1):
         prompt = str(case.get("prompt", "")).strip()
         expected = case.get("expected")
         predicted = predict_skill(prompt, skill_phrases)
-        if predicted == expected:
-            passed += 1
-        else:
-            failures.append(f"Case {i} ({case.get('id')}) failed: prompt={prompt!r} expected={expected!r} predicted={predicted!r}")
+        case_id = str(case.get("id", i))
+        passed = predicted == expected
+        message = "" if passed else f"prompt={prompt!r} expected={expected!r} predicted={predicted!r}"
+        results.append((case_id, passed, message))
 
-    return failures, passed, len(cases)
+    return results
+
+
+def write_junit_report(path: Path, testsuites: list[tuple[str, list[tuple[str, bool, str]]]], elapsed: float) -> None:
+    root = ET.Element("testsuites")
+    for suite_name, cases in testsuites:
+        failures = sum(1 for _, passed, _ in cases if not passed)
+        suite_el = ET.SubElement(
+            root,
+            "testsuite",
+            {"name": suite_name, "tests": str(len(cases)), "failures": str(failures), "time": f"{elapsed:.3f}"},
+        )
+        for name, passed, message in cases:
+            case_el = ET.SubElement(suite_el, "testcase", {"classname": suite_name, "name": name, "time": "0"})
+            if not passed:
+                ET.SubElement(case_el, "failure", {"message": message}).text = message
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    ET.ElementTree(root).write(path, encoding="utf-8", xml_declaration=True)
 
 
 def main() -> int:
@@ -149,8 +168,14 @@ def main() -> int:
         "--cases-file",
         default=str(Path(__file__).resolve().parents[1] / "cases" / "skill-routing-cases.json"),
     )
+    parser.add_argument(
+        "--junit-xml",
+        default=str(Path("test-results") / "routing-evals" / "junit.xml"),
+        help="Where to write a JUnit XML report (for CircleCI's store_test_results)",
+    )
     args = parser.parse_args()
 
+    start = time.perf_counter()
     skills_root = Path(args.skills_root).expanduser().resolve()
     cases_file = Path(args.cases_file).expanduser().resolve()
 
@@ -165,20 +190,37 @@ def main() -> int:
 
     print("== Frontmatter checks ==")
     skills, parse_errors = discover_skills(skills_root)
-    errors.extend(parse_errors)
-    for err in parse_errors:
-        print(f"- FAIL (unparseable): {err}")
+    frontmatter_cases: list[tuple[str, bool, str]] = []
+    for skill_md, exc in parse_errors:
+        message = f"{skill_md}: {exc}"
+        errors.append(message)
+        frontmatter_cases.append((skill_md.parent.name, False, message))
+        print(f"- FAIL (unparseable): {message}")
     for skill in skills:
         skill_errors = check_frontmatter(skill)
         status = "PASS" if not skill_errors else "FAIL"
         print(f"- {skill.folder}: {status}")
         errors.extend(skill_errors)
+        frontmatter_cases.append((skill.folder, not skill_errors, "; ".join(skill_errors)))
 
     print("\n== Routing eval checks ==")
     eval_data = json.loads(cases_file.read_text(encoding="utf-8"))
-    failures, passed, total = run_routing_eval(eval_data)
+    routing_results = run_routing_eval(eval_data)
+    passed = sum(1 for _, ok, _ in routing_results if ok)
+    total = len(routing_results)
     print(f"- cases: {passed}/{total} passed")
-    errors.extend(failures)
+    for i, (case_id, ok, message) in enumerate(routing_results, start=1):
+        if not ok:
+            errors.append(f"Case {i} ({case_id}) failed: {message}")
+
+    write_junit_report(
+        Path(args.junit_xml),
+        [
+            ("frontmatter", frontmatter_cases),
+            ("routing_eval", [(case_id, ok, message) for case_id, ok, message in routing_results]),
+        ],
+        time.perf_counter() - start,
+    )
 
     if errors:
         print("\nFailures:")
