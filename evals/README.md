@@ -38,12 +38,13 @@ a cold content-search cache. Run it locally after changing any `scripts/*.sh`:
 bash scripts/run_functional_evals.sh
 ```
 
-## If this skill ever moves into a git repo (CI reference)
+## CI (`.circleci/config.yml`)
 
-CircleCI-Public/skills' `.circleci/config.yml` is a single job that installs
-`pyyaml` and runs the routing+frontmatter script — nothing else. The same
-shape applies here (this repo doesn't need `pyyaml`, since
-`run_routing_evals.py` uses only the standard library):
+This repo's actual CircleCI config is a single job that runs the
+routing+frontmatter script — nothing else. It doesn't need `pyyaml` or any
+other dependency, since `run_routing_evals.py` uses only the standard
+library, so the job runs directly on `cimg/base` (pinned to a dated tag, not
+the floating `:current`, so the environment doesn't drift under us):
 
 ```yaml
 version: 2.1
@@ -51,7 +52,7 @@ version: 2.1
 jobs:
   skill-evals:
     docker:
-      - image: cimg/python:3.11
+      - image: cimg/base:2026.03
     resource_class: small
     steps:
       - checkout

@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   skill-evals:
     docker:
-      - image: cimg/base:current
+      - image: cimg/base:2026.03
     resource_class: small
     steps:
       - checkout
