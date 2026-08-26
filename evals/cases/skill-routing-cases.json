@@ -1,0 +1,54 @@
+{
+  "skills": {
+    "circleci-orb-finder": {
+      "phrases": [
+        "orb for",
+        "orb exist",
+        "orbある",
+        "orbはある",
+        "orb registry",
+        "circleci orb",
+        "orb finder",
+        "pkg-manager",
+        "orbを探"
+      ]
+    }
+  },
+  "cases": [
+    {
+      "id": "uv-orb-question-ja",
+      "prompt": "circleciにuvを使うためのorbはある?",
+      "expected": "circleci-orb-finder"
+    },
+    {
+      "id": "fivetran-orb-question-en",
+      "prompt": "Is there a CircleCI orb for fivetran?",
+      "expected": "circleci-orb-finder"
+    },
+    {
+      "id": "terraform-orb-search-ja",
+      "prompt": "terraformでawsにデプロイするorbを探して",
+      "expected": "circleci-orb-finder"
+    },
+    {
+      "id": "explicit-invocation",
+      "prompt": "$circleci-orb-finder でaws-cliのorbを確認して",
+      "expected": "circleci-orb-finder"
+    },
+    {
+      "id": "negative-build-failure",
+      "prompt": "why did my CircleCI build fail yesterday?",
+      "expected": null
+    },
+    {
+      "id": "negative-config-optimize",
+      "prompt": ".circleci/config.ymlを高速化したい、キャッシュ周りを見直して",
+      "expected": null
+    },
+    {
+      "id": "negative-author-an-orb",
+      "prompt": "orbを作る方法を教えて、公開の手順も知りたい",
+      "expected": null
+    }
+  ]
+}

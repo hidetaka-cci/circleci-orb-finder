@@ -1,0 +1,67 @@
+{
+  "cases": [
+    {
+      "id": "aws-cli-dedicated-orb",
+      "note": "aws-cli has its own certified orb — name search should find it directly.",
+      "keyword": "aws-cli",
+      "script": "search_by_name.sh",
+      "expect_contains": "circleci/aws-cli"
+    },
+    {
+      "id": "terraform-dedicated-orb",
+      "note": "terraform has its own certified orb — name search should find it directly.",
+      "keyword": "terraform",
+      "script": "search_by_name.sh",
+      "expect_contains": "circleci/terraform"
+    },
+    {
+      "id": "evals-dedicated-orb",
+      "note": "circleci/evals exists and should be the only name hit for this keyword.",
+      "keyword": "evals",
+      "script": "search_by_name.sh",
+      "expect_contains": "circleci/evals"
+    },
+    {
+      "id": "uv-no-name-match",
+      "note": "uv has no orb of its own; name search must not false-positive (regression test for the villeneuve/bouvier/trouva substring bug).",
+      "keyword": "uv",
+      "script": "search_by_name.sh",
+      "expect_contains": "NO_NAME_MATCHES"
+    },
+    {
+      "id": "uv-embedded-in-python",
+      "note": "uv support lives inside circleci/python as a pkg-manager option — only content search finds it.",
+      "keyword": "uv",
+      "script": "search_by_content.sh",
+      "expect_contains": "circleci/python"
+    },
+    {
+      "id": "pnpm-only-uncertified-by-name",
+      "note": "the only name match for pnpm is the uncertified arrai/pnpm orb, not a circleci-certified one.",
+      "keyword": "pnpm",
+      "script": "search_by_name.sh",
+      "expect_contains": "arrai/pnpm"
+    },
+    {
+      "id": "pnpm-embedded-in-node",
+      "note": "pnpm support lives inside circleci/node (install-pnpm, pkg-manager: pnpm) — only content search finds this certified path.",
+      "keyword": "pnpm",
+      "script": "search_by_content.sh",
+      "expect_contains": "circleci/node"
+    },
+    {
+      "id": "fivetran-no-name-match",
+      "note": "no fivetran orb exists at all.",
+      "keyword": "fivetran",
+      "script": "search_by_name.sh",
+      "expect_contains": "NO_NAME_MATCHES"
+    },
+    {
+      "id": "fivetran-no-content-match",
+      "note": "fivetran is not embedded in any certified orb either — true negative across both search modes.",
+      "keyword": "fivetran",
+      "script": "search_by_content.sh",
+      "expect_contains": "NO_CONTENT_MATCHES"
+    }
+  ]
+}
