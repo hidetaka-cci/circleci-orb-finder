@@ -3,13 +3,16 @@ version: 2.1
 jobs:
   skill-evals:
     docker:
-      - image: cimg/base:current
+      - image: cimg/base:2026.03
     resource_class: small
     steps:
       - checkout
       - run:
           name: Run circleci-orb-finder routing evals
           command: python3 evals/scripts/run_routing_evals.py --skills-root .
+      - store_test_results:
+          path: test-results
+          when: always
 
 workflows:
   evals:

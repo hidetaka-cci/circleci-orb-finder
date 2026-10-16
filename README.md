@@ -1,5 +1,7 @@
 # circleci-orb-finder
 
+[English](./README.md) | [日本語](./README_ja.md)
+
 A [Claude Code Agent Skill](https://code.claude.com/docs/en/skills) that answers
 "does a CircleCI orb exist for X?" precisely — including the case a naive name
 search misses: functionality embedded *inside* a broader orb rather than
